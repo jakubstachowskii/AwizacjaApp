@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -55,15 +55,43 @@ const Settings = () => {
   // Ustawienia aplikacji
   const [settings, setSettings] = useState({
     notifications: true,
-    autoBackup: true,
+    autoBackup: false,
     darkMode: false,
     language: 'pl',
     theme: 'default'
   });
 
-  const handleSettingChange = (setting, value) => {
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        if (window.electronAPI?.settingsGetAll) {
+          const saved = await window.electronAPI.settingsGetAll();
+          if (saved && Object.keys(saved).length) {
+            setSettings((prev) => ({
+              ...prev,
+              notifications: saved.notifications !== 'false',
+              autoBackup: saved.autoBackup === 'true',
+              darkMode: saved.darkMode === 'true',
+              language: saved.language || 'pl',
+              theme: saved.theme || 'default'
+            }));
+          }
+        }
+      } catch (_) { /* ignore */ }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSettingChange = async (setting, value) => {
     setSettings(prev => ({ ...prev, [setting]: value }));
-    showSuccess(`Ustawienie ${setting} zostało zmienione`);
+    try {
+      if (window.electronAPI?.settingsSet) {
+        await window.electronAPI.settingsSet(setting, String(value));
+      }
+      showSuccess(`Ustawienie zapisane`);
+    } catch {
+      showError('Nie udało się zapisać ustawienia');
+    }
   };
 
   const handleBackup = async () => {
@@ -82,11 +110,15 @@ const Settings = () => {
 
   const handleRestore = async () => {
     try {
-      if (selectedBackupFile) {
-        // Tutaj byłaby logika przywracania z pliku
-        showSuccess('Dane zostały przywrócone pomyślnie');
+      if (window.electronAPI?.dbRestore) {
+        const result = await window.electronAPI.dbRestore();
+        if (result?.success) {
+          showSuccess('Baza danych została przywrócona. Odśwież widok aplikacji.');
+        } else if (!result?.cancelled) {
+          showError(result?.error || 'Błąd przywracania');
+        }
       } else {
-        showError('Wybierz plik kopii zapasowej');
+        showError('Funkcja przywracania nie jest dostępna');
       }
     } catch (error) {
       showError('Błąd podczas przywracania danych');
@@ -94,14 +126,46 @@ const Settings = () => {
     setRestoreDialogOpen(false);
   };
 
-  const handleClearData = async () => {
+  const handleExport = async () => {
     try {
-      // Tutaj byłaby logika czyszczenia danych
-      showSuccess('Dane zostały wyczyszczone pomyślnie');
-    } catch (error) {
-      showError('Błąd podczas czyszczenia danych');
+      if (window.electronAPI?.dbExport) {
+        const result = await window.electronAPI.dbExport();
+        if (result?.success) showSuccess('Eksport zakończony pomyślnie');
+        else if (!result?.cancelled) showError(result?.error || 'Błąd eksportu');
+      }
+    } catch {
+      showError('Błąd podczas eksportu danych');
     }
+  };
+
+  const handleClearData = async () => {
     setClearDataDialogOpen(false);
+    showWarning('Pełne czyszczenie bazy nie jest dostępne z poziomu UI. Użyj kopii zapasowej przed ręczną operacją na pliku bazy.');
+  };
+
+  const handleTestDatabase = async () => {
+    try {
+      if (window.electronAPI?.dbCheckIntegrity) {
+        const ok = await window.electronAPI.dbCheckIntegrity();
+        if (ok) showSuccess('Połączenie z bazą danych: OK');
+        else showError('Wykryto problem z integralnością bazy');
+      }
+    } catch {
+      showError('Błąd połączenia z bazą danych');
+    }
+  };
+
+  const handleResetSettings = async () => {
+    const defaults = { notifications: true, autoBackup: false, darkMode: false, language: 'pl', theme: 'default' };
+    setSettings(defaults);
+    try {
+      if (window.electronAPI?.settingsSet) {
+        await Promise.all(Object.entries(defaults).map(([k, v]) => window.electronAPI.settingsSet(k, String(v))));
+      }
+      showSuccess('Ustawienia przywrócone do domyślnych');
+    } catch {
+      showError('Nie udało się zresetować ustawień');
+    }
   };
 
   const getDatabaseStats = async () => {
@@ -170,12 +234,9 @@ const Settings = () => {
                   </ListItemIcon>
                   <ListItemText 
                     primary="Tryb ciemny"
-                    secondary="Użyj ciemnego motywu interfejsu"
+                    secondary="Funkcja planowana w kolejnej wersji"
                   />
-                  <Switch
-                    checked={settings.darkMode}
-                    onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
-                  />
+                  <Switch checked={false} disabled />
                 </ListItem>
               </List>
             </CardContent>
@@ -214,6 +275,7 @@ const Settings = () => {
                   variant="outlined"
                   startIcon={<FaFileExport />}
                   fullWidth
+                  onClick={handleExport}
                 >
                   Eksportuj dane
                 </Button>
@@ -222,8 +284,10 @@ const Settings = () => {
                   variant="outlined"
                   startIcon={<FaFileImport />}
                   fullWidth
+                  disabled
+                  title="Import danych — planowany w kolejnej wersji"
                 >
-                  Importuj dane
+                  Importuj dane (wkrótce)
                 </Button>
               </Box>
             </CardContent>
@@ -287,6 +351,7 @@ const Settings = () => {
                   startIcon={<FaRedo />}
                   fullWidth
                   color="primary"
+                  onClick={handleTestDatabase}
                 >
                   Test połączenia z bazą
                 </Button>
@@ -305,6 +370,7 @@ const Settings = () => {
                   variant="outlined"
                   startIcon={<FaCog />}
                   fullWidth
+                  onClick={handleResetSettings}
                 >
                   Resetuj ustawienia
                 </Button>
@@ -336,14 +402,8 @@ const Settings = () => {
         <DialogTitle>Przywróć z kopii zapasowej</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            Wybierz plik kopii zapasowej do przywrócenia:
+            Otworzy się okno wyboru pliku kopii zapasowej (.db).
           </Typography>
-          <input
-            type="file"
-            accept=".db,.sqlite"
-            onChange={(e) => setSelectedBackupFile(e.target.files[0])}
-            style={{ width: '100%' }}
-          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRestoreDialogOpen(false)}>Anuluj</Button>

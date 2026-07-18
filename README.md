@@ -1,161 +1,61 @@
-# Aplikacja do Zarządzania Awizacjami - Punkt Skupu Zbóż
+# AwizaxjaApp – Grain Logistics
 
-Aplikacja desktopowa do zarządzania awizacjami pojazdów w punktach skupu zbóż, zbudowana w technologii Electron + React.
+Aplikacja desktopowa (Electron + React + SQLite) do zarządzania punktem skupu zbóż.
 
-## Funkcjonalności
+## Moduły
 
-- **Dashboard** - Przegląd awizacji w formie kalendarza i tabeli
-- **Zarządzanie awizacjami** - Dodawanie, edycja i usuwanie awizacji
-- **Słownik zbóż** - Zarządzanie rodzajami zbóż
-- **Kontrahenci** - Zarządzanie bazą kontrahentów
-- **Raporty** - Generowanie raportów i statystyk
-- **Ustawienia** - Kopia zapasowa i eksport danych
+| Moduł | Opis |
+|-------|------|
+| **Awizacje** | Kalendarz awizacji, kontrahenci, przewoźnicy, zboża, raporty |
+| **Skup** | Przyjęcia, dostawy, cenniki, kontrakty, dokumenty, reguły jakości |
+| **Magazyn** | Magazyny, stany, partie, ruchy, przesunięcia, inwentaryzacja |
+| **Jakość** | Badania laboratoryjne, certyfikaty, procesy HACCP/GMP |
+| **Sprzedaż** | Klienci, zamówienia, faktury |
 
-## Technologie
+## Wymagania
 
-- **Aplikacja desktopowa**: Electron + React
-- **Interfejs użytkownika**: Material-UI, React Icons
-- **Baza danych**: SQLite (lokalna)
-- **Styling**: Material-UI Theme
-
-## Instalacja
-
-### Wymagania
-- Node.js 16+ 
-- npm lub yarn
-
-### Instalacja zależności
-```bash
-npm install
-```
+- Node.js 16+
+- npm
 
 ## Uruchomienie
 
-### Główny sposób uruchamiania
 ```bash
-npm start
+npm install
+npm start          # build React + Electron (produkcja lokalna)
+npm run dev        # hot-reload React + Electron (development)
+start.bat          # Windows: build + electron
 ```
 
-### Szybkie uruchomienie (alternatywa)
+## Budowanie instalatora
+
 ```bash
-# Windows
-start.bat
-
-# Linux/macOS
-chmod +x start.sh
-./start.sh
-```
-
-### Ręczne uruchomienie
-```bash
-# Budowanie aplikacji React
-npm run build
-
-# Uruchomienie aplikacji Electron
-npm run electron
-```
-
-### Budowanie dystrybucji
-```bash
-# Windows
-npm run dist
-
-# Linux
-npm run dist
-
-# macOS
 npm run dist
 ```
 
-## Struktura projektu
-
-```
-AwizaxjaApp/
-├── electron/           # Kod Electron
-│   ├── main.js        # Główny proces
-│   └── preload.js     # Preload script
-├── src/               # Kod React
-│   ├── components/    # Komponenty React
-│   ├── App.js         # Główny komponent
-│   └── index.js       # Punkt wejścia
-├── public/            # Pliki publiczne
-├── schema.sql         # Schemat bazy danych
-├── start.bat          # Skrypt uruchamiania Windows
-├── start.sh           # Skrypt uruchamiania Linux/macOS
-└── package.json       # Konfiguracja projektu
-```
+Pliki w folderze `dist/`.
 
 ## Baza danych
 
-Aplikacja używa SQLite z automatyczną inicjalizacją. Baza danych jest przechowywana w katalogu użytkownika aplikacji.
+- SQLite: `%APPDATA%/grain-logistics-app/grain_logistics.db` (Windows)
+- Schemat: `schema.sql`
+- Backup / restore / export JSON: **Ustawienia** na ekranie startowym
 
-### Tabele:
-- `grains` - Rodzaje zbóż
-- `contractors` - Kontrahenci
-- `appointments` - Awizacje
-- `weights` - Ważenia
-- `settings` - Ustawienia aplikacji
+## Architektura
 
-## Funkcje aplikacji
-
-### Dashboard
-- Kalendarz awizacji
-- Tabela z filtrowaniem
-- Statystyki w czasie rzeczywistym
-
-### Zarządzanie awizacjami
-- Formularz dodawania/edycji
-- Walidacja danych
-- Statusy awizacji (oczekująca, w trakcie, zakończona, anulowana)
-
-### Słownik zbóż
-- CRUD operacje na zbożach
-- Jednostki miary (t, kg, g)
-
-### Kontrahenci
-- Pełne zarządzanie kontrahentami
-- Typy: rolnik, firma, transport
-- Dane kontaktowe i adresowe
-
-### Raporty
-- Statystyki ogólne
-- Filtrowanie po datach
-- Eksport danych (planowane)
-
-### Ustawienia
-- Kopia zapasowa bazy danych
-- Eksport danych (planowane)
-- Informacje o aplikacji
-
-## Rozwój
-
-### Dodawanie nowych funkcji
-1. Utwórz komponent w `src/components/`
-2. Dodaj routing w `src/App.js`
-3. Dodaj nawigację w `src/components/Navigation.js`
-4. Zaktualizuj schemat bazy danych jeśli potrzebne
-
-### Style
-- Używaj Material-UI dla komponentów
-- Bootstrap dla layoutu
-- Własne style w `src/App.css`
-
-## Budowanie
-
-### Windows
-```bash
-npm run dist
 ```
-Pliki dystrybucji w `dist/` folderze.
-
-### Linux
-```bash
-npm run dist
+electron/          – proces główny, IPC, SQLite
+  dbConstants.js   – lista dozwolonych tabel
+  dbHelpers.js     – migracje, transakcje, mapowanie słowników
+src/modules/       – moduły UI (awizacje, skup, magazyn, jakość, sprzedaż)
+schema.sql         – pełny schemat bazy
 ```
-AppImage w `dist/` folderze.
 
-### macOS
+## Testy
+
 ```bash
-npm run dist
+npm run test:db
 ```
-DMG w `dist/`
+
+## Integracja Skup ↔ Magazyn
+
+Przy zapisie przyjęcia skupu system automatycznie mapuje zboże ze słownika `skup_grains` na `grains` (po nazwie) i tworzy ruch magazynowy w jednej transakcji SQLite.

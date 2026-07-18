@@ -31,7 +31,7 @@ const PriceHistory = () => {
   useEffect(() => {
     const load = async () => {
       const [g, p] = await Promise.all([
-        window.electronAPI.dbGetAll('grains', 'name'),
+        window.electronAPI.dbGetAll('skup_grains', 'name'),
         window.electronAPI.dbGetAll('skup_prices', 'valid_from')
       ]);
       setGrains(g || []);
@@ -45,7 +45,7 @@ const PriceHistory = () => {
     const filtered = prices
       .filter(x => x.grain_id === parseInt(grainId))
       .sort((a, b) => (a.valid_from > b.valid_from ? 1 : -1));
-    return filtered.map((x, i) => ({ x: i, y: parseFloat(x.price_per_ton) }));
+    return filtered.map((x, i) => ({ x: i, y: parseFloat(x.price_per_unit) }));
   }, [prices, grainId]);
 
   return (

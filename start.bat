@@ -1,12 +1,10 @@
 @echo off
-echo Budowanie aplikacji...
-npm run build
-if %errorlevel% neq 0 (
-    echo Błąd podczas budowania aplikacji!
-    pause
-    exit /b 1
-)
-
-echo Uruchamianie aplikacji...
-npm run electron
-pause 
+cd /d "%~dp0"
+title Grain Logistics
+echo.
+echo === Grain Logistics — start ===
+echo.
+call npm start
+echo.
+echo Aplikacja zamknieta. Kod: %ERRORLEVEL%
+pause

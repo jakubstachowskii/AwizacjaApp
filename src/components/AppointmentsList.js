@@ -52,6 +52,7 @@ import { validateAppointment } from '../utils/validation';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import ScaleConfigDialog from '../modules/skup/components/ScaleConfigDialog';
+import ScalePanel from './peripherals/ScalePanel';
 
 const AppointmentsList = () => {
   const { 
@@ -75,6 +76,9 @@ const AppointmentsList = () => {
   const [previewReport, setPreviewReport] = useState(null);
   const [wzDocument, setWzDocument] = useState(null);
   const [showWzDialog, setShowWzDialog] = useState(false);
+  const [scaleConfigOpen, setScaleConfigOpen] = useState(false);
+  const [weighData, setWeighData] = useState({ brutto: '', tara: '', netto: '' });
+  const [weighTarget, setWeighTarget] = useState('brutto');
   
   // Filtry raportów
 
@@ -207,6 +211,11 @@ const AppointmentsList = () => {
         grain_class: appointment.grain_class || '',
         quality_notes: appointment.quality_notes || ''
       });
+      setWeighData({
+        brutto: appointment.brutto != null ? String(appointment.brutto) : '',
+        tara: appointment.tara != null ? String(appointment.tara) : '',
+        netto: appointment.netto != null ? String(appointment.netto) : ''
+      });
     } else {
     setEditingAppointment(null);
       setFormData({
@@ -316,6 +325,20 @@ const AppointmentsList = () => {
       quality_notes: ''
     });
     setFormErrors({});
+    setWeighData({ brutto: '', tara: '', netto: '' });
+    setWeighTarget('brutto');
+  };
+
+  const applyScaleWeight = (value) => {
+    setWeighData((prev) => {
+      const next = { ...prev, [weighTarget]: String(Number(value).toFixed(3)) };
+      const b = parseFloat(next.brutto);
+      const t = parseFloat(next.tara);
+      if (!Number.isNaN(b) && !Number.isNaN(t)) {
+        next.netto = String(Math.max(0, b - t).toFixed(3));
+      }
+      return next;
+    });
   };
 
   const handleFormChange = (field, value) => {
@@ -341,12 +364,22 @@ const AppointmentsList = () => {
     }
 
     try {
+      let appointmentId = editingAppointment?.id;
       if (editingAppointment) {
         await updateAppointment(editingAppointment.id, formData);
         showSuccess('Awizacja zaktualizowana pomyślnie');
       } else {
-        await addAppointment(formData);
+        const res = await addAppointment(formData);
+        appointmentId = res?.id;
         showSuccess('Awizacja dodana pomyślnie');
+      }
+      if (appointmentId && (weighData.brutto || weighData.tara || weighData.netto)) {
+        await window.electronAPI.appointmentSaveWeights({
+          appointmentId,
+          brutto: weighData.brutto || null,
+          tara: weighData.tara || null,
+          netto: weighData.netto || null
+        });
       }
       handleCloseDialog();
       // resetForm(); // This function is not defined in the original file, so it's removed.
@@ -426,9 +459,9 @@ const AppointmentsList = () => {
       
       // Dane wagowe
       weights: {
-        brutto: '', // Będzie wypełnione po ważeniu
-        tara: '',   // Będzie wypełnione po ważeniu
-        netto: ''   // Będzie wypełnione po ważeniu
+        brutto: weighData.brutto || '',
+        tara: weighData.tara || '',
+        netto: weighData.netto || ''
       },
       
       // Dodatkowe informacje
@@ -1002,8 +1035,6 @@ const AppointmentsList = () => {
       </Box>
     );
   }
-
-  const [scaleConfigOpen, setScaleConfigOpen] = useState(false);
 
   return (
     <Box>
@@ -1878,6 +1909,60 @@ const AppointmentsList = () => {
                   </Grid>
                 </Box>
               </Grid>
+
+            {/* Sekcja: Ważenie mostowe */}
+            <Grid item xs={12}>
+              <Box sx={{
+                p: { xs: 2, sm: 3 },
+                mb: { xs: 2, sm: 3 },
+                borderRadius: 2,
+                border: '2px solid #e2e8f0',
+                backgroundColor: '#f8fafc'
+              }}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#7c3aed', fontWeight: 700 }}>
+                  ⚖️ Ważenie (waga sieciowa)
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={5}>
+                    <Box sx={{ mb: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {['brutto', 'tara', 'netto'].map((field) => (
+                        <Chip
+                          key={field}
+                          label={field.charAt(0).toUpperCase() + field.slice(1)}
+                          onClick={() => setWeighTarget(field)}
+                          color={weighTarget === field ? 'primary' : 'default'}
+                          variant={weighTarget === field ? 'filled' : 'outlined'}
+                          size="small"
+                        />
+                      ))}
+                    </Box>
+                    <ScalePanel
+                      compact
+                      autoStart
+                      showConfigButton
+                      onOpenConfig={() => setScaleConfigOpen(true)}
+                      onWeightSelect={weighTarget !== 'netto' ? applyScaleWeight : undefined}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={7}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={4}>
+                        <TextField fullWidth label="Brutto [kg]" value={weighData.brutto}
+                          onChange={(e) => setWeighData({ ...weighData, brutto: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField fullWidth label="Tara [kg]" value={weighData.tara}
+                          onChange={(e) => setWeighData({ ...weighData, tara: e.target.value })} />
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField fullWidth label="Netto [kg]" value={weighData.netto}
+                          onChange={(e) => setWeighData({ ...weighData, netto: e.target.value })} />
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
 
             {/* Sekcja 8: Jakość zboża */}
             <Grid item xs={12}>

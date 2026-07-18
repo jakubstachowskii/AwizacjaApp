@@ -27,6 +27,7 @@ import {
   Chip
 } from '@mui/material';
 import { FaPlus, FaEdit, FaTrash, FaTruck, FaShippingFast } from 'react-icons/fa';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const DeliveryDialog = ({ open, onClose, onSubmit, initialData, contractors, grains, warehouses }) => {
   const [values, setValues] = useState({ 
@@ -280,6 +281,8 @@ const Deliveries = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
   const [warehouses, setWarehouses] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [idToDelete, setIdToDelete] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -351,15 +354,19 @@ const Deliveries = () => {
 
       // Automatyczny ruch magazynowy (wydanie) z walidacją stanu
       if (data.warehouse_id && data.grain_id && Number(data.quantity) > 0) {
+        const magazynGrainId = await window.electronAPI.resolveMagazynGrainId(Number(data.grain_id));
+        if (!magazynGrainId) {
+          setSnack({ open: true, message: 'Nie udało się zmapować zboża do magazynu', severity: 'error' });
+        } else {
         const stocks = await window.electronAPI.dbGetAll('magazyn_stock_levels', 'id');
-        const existing = (stocks || []).find(s => s.warehouse_id === Number(data.warehouse_id) && s.grain_id === Number(data.grain_id));
+        const existing = (stocks || []).find(s => s.warehouse_id === Number(data.warehouse_id) && s.grain_id === Number(magazynGrainId));
         const available = Number(existing?.quantity || 0);
         if (available < Number(data.quantity)) {
           setSnack({ open: true, message: 'Brak wystarczającego stanu magazynowego', severity: 'error' });
         } else {
           await window.electronAPI.dbInsert('magazyn_movements', {
             warehouse_id: Number(data.warehouse_id),
-            grain_id: Number(data.grain_id),
+            grain_id: Number(magazynGrainId),
             movement_type: 'wydanie',
             quantity: Number(data.quantity),
             unit: data.unit === 'kg' ? 'kg' : 't',
@@ -369,6 +376,7 @@ const Deliveries = () => {
             notes: 'Automatyczne wydanie z dostawy'
           });
           await window.electronAPI.dbUpdate('magazyn_stock_levels', existing.id, { quantity: available - Number(data.quantity) });
+        }
         }
       }
 
@@ -381,16 +389,23 @@ const Deliveries = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Czy na pewno chcesz usunąć tę dostawę?')) {
-      try {
-        await window.electronAPI.dbDelete('skup_deliveries', id);
-        setSnack({ open: true, message: 'Dostawa usunięta', severity: 'success' });
-        load();
-      } catch (error) {
-        console.error('Błąd usuwania dostawy:', error);
-        setSnack({ open: true, message: 'Błąd usuwania dostawy', severity: 'error' });
-      }
+  const handleDelete = (id) => {
+    setIdToDelete(id);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!idToDelete) return;
+    try {
+      await window.electronAPI.dbDelete('skup_deliveries', idToDelete);
+      setSnack({ open: true, message: 'Dostawa usunięta', severity: 'success' });
+      load();
+    } catch (error) {
+      console.error('Błąd usuwania dostawy:', error);
+      setSnack({ open: true, message: 'Błąd usuwania dostawy', severity: 'error' });
+    } finally {
+      setConfirmOpen(false);
+      setIdToDelete(null);
     }
   };
 
@@ -519,6 +534,15 @@ const Deliveries = () => {
         contractors={contractors}
         grains={grains}
         warehouses={warehouses}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setIdToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Usuń dostawę"
+        message="Czy na pewno chcesz usunąć tę dostawę?"
+        confirmText="Usuń"
       />
 
       <Snackbar

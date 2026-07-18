@@ -33,6 +33,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scaleStart: () => ipcRenderer.invoke('scale-start'),
   scaleStop: () => ipcRenderer.invoke('scale-stop'),
   scaleGetLatest: () => ipcRenderer.invoke('scale-get-latest'),
+  scaleGetStatus: () => ipcRenderer.invoke('scale-get-status'),
   scaleListSerialPorts: () => ipcRenderer.invoke('scale-list-serial-ports'),
-  scaleTestConnection: (cfg) => ipcRenderer.invoke('scale-test-connection', cfg)
+  scaleTestConnection: (cfg) => ipcRenderer.invoke('scale-test-connection', cfg),
+
+  // Urządzenia laboratoryjne (Jakość)
+  labDeviceTestConnection: (device) => ipcRenderer.invoke('lab-device-test-connection', device),
+  labDeviceStart: (deviceId) => ipcRenderer.invoke('lab-device-start', deviceId),
+  labDeviceStop: (deviceId) => ipcRenderer.invoke('lab-device-stop', deviceId),
+  labDeviceReadOnce: (deviceId) => ipcRenderer.invoke('lab-device-read-once', deviceId),
+
+  // Awizacje – wagi
+  appointmentSaveWeights: (payload) => ipcRenderer.invoke('appointment-save-weights', payload),
+
+  // Skup – transakcyjny zapis przyjęcia
+  skupSaveIntake: (payload) => ipcRenderer.invoke('skup-save-intake', payload),
+  resolveMagazynGrainId: (skupGrainId) => ipcRenderer.invoke('db-resolve-magazyn-grain', skupGrainId),
+
+  // Ustawienia aplikacji
+  settingsGet: (key) => ipcRenderer.invoke('settings-get', key),
+  settingsGetAll: () => ipcRenderer.invoke('settings-get-all'),
+  settingsSet: (key, value) => ipcRenderer.invoke('settings-set', key, value),
+
+  // Backup / restore / export
+  dbRestore: () => ipcRenderer.invoke('db-restore'),
+  dbExport: () => ipcRenderer.invoke('db-export')
 });

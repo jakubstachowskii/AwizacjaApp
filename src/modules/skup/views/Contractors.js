@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, IconButton, TextField, Snackbar, Alert, TablePagination, TableSortLabel, TableContainer, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Grid, MenuItem } from '@mui/material';
 import { FaPlus, FaEdit, FaTrash, FaUser } from 'react-icons/fa';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const ContractorDialog = ({ open, onClose, onSubmit, initialData }) => {
   const [values, setValues] = useState({ 
     name: '', 
-    type: 'buyer', 
+    type: 'rolnik', 
+    nip: '',
     contact_person: '', 
     phone: '', 
     email: '', 
@@ -16,7 +18,8 @@ const ContractorDialog = ({ open, onClose, onSubmit, initialData }) => {
   useEffect(() => { 
     setValues(initialData || { 
       name: '', 
-      type: 'buyer', 
+      type: 'rolnik', 
+      nip: '',
       contact_person: '', 
       phone: '', 
       email: '', 
@@ -120,43 +123,17 @@ const ContractorDialog = ({ open, onClose, onSubmit, initialData }) => {
                       }
                     }}
                   >
-                    <MenuItem value="buyer">Kupujący</MenuItem>
-                    <MenuItem value="seller">Sprzedający</MenuItem>
-                    <MenuItem value="transporter">Przewoźnik</MenuItem>
-                    <MenuItem value="other">Inny</MenuItem>
+                    <MenuItem value="rolnik">Rolnik / Sprzedający</MenuItem>
+                    <MenuItem value="firma">Firma / Kupujący</MenuItem>
+                    <MenuItem value="transport">Przewoźnik</MenuItem>
                   </TextField>
                 </Grid>
-              </Grid>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Box sx={{ 
-              p: 3, 
-              mb: 3, 
-              borderRadius: 2, 
-              border: '2px solid #e2e8f0',
-              backgroundColor: '#f8fafc',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <Typography variant="h6" sx={{ 
-                mb: 3, 
-                color: '#059669',
-                fontWeight: 700,
-                borderBottom: '3px solid #059669',
-                pb: 1,
-                fontSize: '1.1rem'
-              }}>
-                📞 Dane kontaktowe
-              </Typography>
-
-              <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField 
-                    label="Osoba kontaktowa" 
-                    name="contact_person" 
+                    label="NIP" 
+                    name="nip" 
                     fullWidth 
-                    value={values.contact_person} 
+                    value={values.nip} 
                     onChange={handleChange} 
                     sx={{ 
                       '& .MuiInputLabel-root': { 
@@ -168,6 +145,15 @@ const ContractorDialog = ({ open, onClose, onSubmit, initialData }) => {
                         transform: 'translate(14px, -9px) scale(0.75)'
                       }
                     }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField 
+                    label="Osoba kontaktowa" 
+                    name="contact_person" 
+                    fullWidth 
+                    value={values.contact_person} 
+                    onChange={handleChange} 
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -275,6 +261,8 @@ const Contractors = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [idToDelete, setIdToDelete] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -344,16 +332,23 @@ const Contractors = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Czy na pewno chcesz usunąć tego kontrahenta?')) {
-      try {
-        await window.electronAPI.dbDelete('skup_contractors', id);
-        setSnack({ open: true, message: 'Kontrahent usunięty', severity: 'success' });
-        load();
-      } catch (error) {
-        console.error('Błąd usuwania kontrahenta:', error);
-        setSnack({ open: true, message: 'Błąd usuwania kontrahenta', severity: 'error' });
-      }
+  const handleDelete = (id) => {
+    setIdToDelete(id);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!idToDelete) return;
+    try {
+      await window.electronAPI.dbDelete('skup_contractors', idToDelete);
+      setSnack({ open: true, message: 'Kontrahent usunięty', severity: 'success' });
+      load();
+    } catch (error) {
+      console.error('Błąd usuwania kontrahenta:', error);
+      setSnack({ open: true, message: 'Błąd usuwania kontrahenta', severity: 'error' });
+    } finally {
+      setConfirmOpen(false);
+      setIdToDelete(null);
     }
   };
 
@@ -471,6 +466,15 @@ const Contractors = () => {
         }}
         onSubmit={handleSubmit}
         initialData={editingRow}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setIdToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Usuń kontrahenta"
+        message="Czy na pewno chcesz usunąć tego kontrahenta?"
+        confirmText="Usuń"
       />
 
       <Snackbar

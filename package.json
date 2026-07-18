@@ -5,17 +5,22 @@
   "main": "electron/main.js",
   "homepage": "./",
   "scripts": {
-    "start": "electron .",
-    "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:3000 && electron .\"",
+    "start": "node scripts/start-app.js",
+    "start:fast": "electron .",
+    "start:rebuild": "cross-env AWIZAXJA_FORCE_BUILD=1 node scripts/start-app.js",
+    "start:build": "node scripts/start-app.js",
+    "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
     "dev:react": "react-scripts start",
     "build": "node scripts/build.js",
     "build:prod": "npm run build && electron-builder --publish=never",
     "test": "react-scripts test",
+    "test:db": "node scripts/test-db.js",
+    "test:sqljs": "node scripts/test-sqljs.js",
+    "test:e2e": "electron scripts/test-app-e2e.js",
     "eject": "react-scripts eject",
     "electron": "electron .",
-    "dist": "npm run build && electron-builder --publish=never",
-    "pack": "npm run build && electron-builder --dir",
-    "postinstall": "electron-builder install-app-deps"
+    "dist": "node scripts/prepare-assets.js && npm run build && electron-builder --publish=never",
+    "pack": "node scripts/prepare-assets.js && npm run build && electron-builder --dir"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -28,17 +33,18 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.10.1",
-    "sqlite3": "^5.1.7"
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "electron": "^25.3.1",
     "electron-builder": "^24.6.3",
-    "electron-rebuild": "^3.2.9",
     "react-scripts": "^5.0.1",
     "wait-on": "^7.2.0"
   },
   "build": {
+    "extends": null,
     "appId": "com.grainlogistics.app",
     "productName": "Grain Logistics",
     "directories": {
@@ -48,11 +54,12 @@
       "build/**/*",
       "electron/**/*",
       "node_modules/**/*",
+      "node_modules/sql.js/dist/**/*",
       "schema.sql"
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.png"
     },
     "linux": {
       "target": "AppImage",
@@ -60,7 +67,7 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.png"
     }
   },
   "browserslist": {

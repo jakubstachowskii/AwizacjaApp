@@ -398,20 +398,33 @@ const IntakeFormDialog = ({ open, onClose, initialData, onSubmit, contractors = 
     if (!validate()) return;
 
     try {
-      // Zapisz główne dane przyjęcia
       const intakeData = { ...formData };
-      delete intakeData.correction_reason; // Nie zapisujemy tego w głównej tabeli
+      delete intakeData.correction_reason;
+      delete intakeData.deductions;
+      delete intakeData.price_corrections;
+      delete intakeData.delivery_type;
+      delete intakeData.contract_id;
+      delete intakeData.warehouse_id;
+      delete intakeData.quality_grade;
+      delete intakeData.final_amount;
+      delete intakeData.price_adjustment;
+      delete intakeData.price_adjustment_reason;
 
-      if (initialData) {
-        await window.electronAPI.dbUpdate('skup_intakes', initialData.id, intakeData);
-        
-        // Jeśli są ręczne korekty wag, zapisz w audit log
-        if (formData.correction_reason.trim()) {
+      const result = await window.electronAPI.skupSaveIntake({
+        intakeData,
+        warehouseId: formData.warehouse_id,
+        isUpdate: Boolean(initialData),
+        intakeId: initialData?.id
+      });
+
+      const savedId = result?.id || initialData?.id;
+
+      if (formData.correction_reason?.trim() && savedId) {
+        if (initialData) {
           const auditEntries = [];
-          
           if (formData.gross_weight !== initialData.gross_weight) {
             auditEntries.push({
-              intake_id: initialData.id,
+              intake_id: savedId,
               field: 'gross_weight',
               old_value: initialData.gross_weight,
               new_value: formData.gross_weight,
@@ -419,10 +432,9 @@ const IntakeFormDialog = ({ open, onClose, initialData, onSubmit, contractors = 
               source: 'manual'
             });
           }
-          
           if (formData.tare_weight !== initialData.tare_weight) {
             auditEntries.push({
-              intake_id: initialData.id,
+              intake_id: savedId,
               field: 'tare_weight',
               old_value: initialData.tare_weight,
               new_value: formData.tare_weight,
@@ -430,61 +442,18 @@ const IntakeFormDialog = ({ open, onClose, initialData, onSubmit, contractors = 
               source: 'manual'
             });
           }
-
-          // Zapisz wpisy audit
           for (const entry of auditEntries) {
             await window.electronAPI.dbInsert('skup_weight_audit', entry);
           }
-        }
-      } else {
-        const result = await window.electronAPI.dbInsert('skup_intakes', intakeData);
-        
-        // Jeśli są ręczne wprowadzenia wag (nie z urządzenia), zapisz w audit log
-        if (formData.correction_reason.trim() && result.id) {
+        } else {
           await window.electronAPI.dbInsert('skup_weight_audit', {
-            intake_id: result.id,
+            intake_id: savedId,
             field: 'manual_entry',
             old_value: null,
             new_value: `Brutto: ${formData.gross_weight}t, Tara: ${formData.tare_weight}t`,
             reason: formData.correction_reason,
             source: 'manual'
           });
-        }
-
-        // Automatyczny ruch magazynowy (przyjęcie) jeśli wskazano zboże i ilości
-        try {
-          const netTons = parseFloat(formData.net_weight || 0);
-          if (result.id && formData.grain_id && netTons > 0) {
-            // Na razie bez wyboru magazynu — przyjmij do pierwszego aktywnego lub utwórz domyślny
-            let warehouses = await window.electronAPI.dbGetAll('magazyn_warehouses', 'id');
-            if (!warehouses || warehouses.length === 0) {
-              const created = await window.electronAPI.dbInsert('magazyn_warehouses', { name: 'Magazyn domyślny', code: 'MAG-1', type: 'magazyn', capacity: 0, unit: 't', is_active: 1 });
-              warehouses = [{ id: created.id, name: 'Magazyn domyślny' }];
-            }
-            const chosenId = formData.warehouse_id ? Number(formData.warehouse_id) : warehouses[0].id;
-            const targetWh = warehouses.find(w => w.id === chosenId) || warehouses[0];
-            await window.electronAPI.dbInsert('magazyn_movements', {
-              warehouse_id: targetWh.id,
-              grain_id: parseInt(formData.grain_id),
-              movement_type: 'przyjecie',
-              quantity: netTons,
-              unit: 't',
-              reference_type: 'skup_intake',
-              reference_id: result.id,
-              document_number: formData.document_number || null,
-              notes: 'Automatyczny ruch z przyjęcia skupu'
-            });
-            // Aktualizacja stanu
-            const stocks = await window.electronAPI.dbGetAll('magazyn_stock_levels', 'id');
-            const existing = (stocks || []).find(s => s.warehouse_id === Number(targetWh.id) && s.grain_id === Number(formData.grain_id));
-            if (existing) {
-              await window.electronAPI.dbUpdate('magazyn_stock_levels', existing.id, { quantity: Number(existing.quantity || 0) + netTons });
-            } else {
-              await window.electronAPI.dbInsert('magazyn_stock_levels', { warehouse_id: Number(targetWh.id), grain_id: Number(formData.grain_id), quantity: netTons, unit: 't' });
-            }
-          }
-        } catch (e) {
-          console.error('Błąd automatycznego ruchu magazynowego:', e);
         }
       }
 

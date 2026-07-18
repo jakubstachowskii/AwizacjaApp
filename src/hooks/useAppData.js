@@ -9,9 +9,9 @@ export const useAppData = () => {
   const [error, setError] = useState(null);
 
   // Pobieranie awizacji z bazy danych
-  const fetchAppointments = useCallback(async (filters = {}) => {
+  const fetchAppointments = useCallback(async (filters = {}, { silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       if (window.electronAPI) {
         const data = await window.electronAPI.dbGetAppointments(filters);
@@ -23,14 +23,14 @@ export const useAppData = () => {
       }
       setError('Nie udało się pobrać awizacji');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   // Pobieranie kontrahentów
-  const fetchContractors = useCallback(async () => {
+  const fetchContractors = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       if (window.electronAPI) {
         const data = await window.electronAPI.dbGetAll('contractors');
@@ -42,14 +42,14 @@ export const useAppData = () => {
       }
       setError('Nie udało się pobrać kontrahentów');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   // Pobieranie zbóż
-  const fetchGrains = useCallback(async () => {
+  const fetchGrains = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       if (window.electronAPI) {
         const data = await window.electronAPI.dbGetAll('grains');
@@ -61,7 +61,7 @@ export const useAppData = () => {
       }
       setError('Nie udało się pobrać zbóż');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -164,18 +164,14 @@ export const useAppData = () => {
     }
   }, []);
 
-  // Inicjalizacja danych
+  // Inicjalizacja danych w tle — nie blokuje ekranu startowego
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // Sprawdź integralność bazy danych
-        await checkDatabaseHealth();
-        
-        // Pobierz dane
         await Promise.all([
-          fetchAppointments(),
-          fetchContractors(),
-          fetchGrains()
+          fetchAppointments({}, { silent: true }),
+          fetchContractors({ silent: true }),
+          fetchGrains({ silent: true })
         ]);
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -186,7 +182,7 @@ export const useAppData = () => {
     };
 
     initializeData();
-  }, [fetchAppointments, fetchContractors, fetchGrains, checkDatabaseHealth]);
+  }, [fetchAppointments, fetchContractors, fetchGrains]);
 
   // Funkcje zarządzania bazą danych
   const optimizeDatabase = useCallback(async () => {

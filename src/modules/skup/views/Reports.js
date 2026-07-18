@@ -5,6 +5,7 @@ import {
   TableContainer, TableHead, TableRow, Paper, Chip
 } from '@mui/material';
 import { FaFileAlt, FaDownload, FaChartBar } from 'react-icons/fa';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 const Reports = () => {
   const [reportType, setReportType] = useState('intakes');
@@ -196,7 +197,8 @@ const Reports = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <AnalyticsDashboard />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, mt: 2 }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           Raporty Skup
         </Typography>

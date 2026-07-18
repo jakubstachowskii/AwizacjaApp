@@ -35,6 +35,7 @@ import {
 } from 'react-icons/fa';
 import { AppContext } from '../App';
 import { useNotification } from './NotificationProvider';
+import ConfirmDialog from './ConfirmDialog';
 
 const ContractorsList = () => {
   const { contractors, loading, addContractor, updateContractor, deleteContractor } = useContext(AppContext);
@@ -45,6 +46,8 @@ const ContractorsList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [contractorToDelete, setContractorToDelete] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -160,16 +163,23 @@ const ContractorsList = () => {
     setOpenDialog(true);
   }, []);
 
-  const handleDelete = useCallback(async (contractor) => {
-    if (window.confirm(`Czy na pewno chcesz usunąć kontrahenta "${contractor.name}"?`)) {
-      try {
-        await deleteContractor(contractor.id);
-        showSuccess('Kontrahent został usunięty');
-      } catch (error) {
-        showError('Błąd podczas usuwania kontrahenta');
-      }
+  const handleDelete = useCallback((contractor) => {
+    setContractorToDelete(contractor);
+    setConfirmOpen(true);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!contractorToDelete) return;
+    try {
+      await deleteContractor(contractorToDelete.id);
+      showSuccess('Kontrahent został usunięty');
+    } catch (error) {
+      showError('Błąd podczas usuwania kontrahenta');
+    } finally {
+      setConfirmOpen(false);
+      setContractorToDelete(null);
     }
-  }, [deleteContractor, showSuccess, showError]);
+  }, [contractorToDelete, deleteContractor, showSuccess, showError]);
 
   const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
@@ -570,6 +580,15 @@ const ContractorsList = () => {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setContractorToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Usuń kontrahenta"
+        message={contractorToDelete ? `Czy na pewno chcesz usunąć kontrahenta "${contractorToDelete.name}"?` : ''}
+        confirmText="Usuń"
+      />
     </Box>
   );
 };

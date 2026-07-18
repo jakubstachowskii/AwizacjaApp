@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Card, CardContent, Typography, Button, Grid, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Chip, IconButton } from '@mui/material';
 import { FaIndustry } from 'react-icons/fa';
 import { Delete as DeleteIcon } from '@mui/icons-material';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const WarehouseDialog = ({ open, onClose, onSubmit, initial }) => {
   const [values, setValues] = useState({ name: '', code: '', type: 'silos', capacity: '', unit: 't', location: '', description: '', is_active: 1 });
@@ -55,6 +56,8 @@ export default function InventoryView() {
   const [grains, setGrains] = useState([]);
   const [openWh, setOpenWh] = useState(false);
   const [editWh, setEditWh] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   const loadAll = useCallback(async () => {
     const [wh, st, gr] = await Promise.all([
@@ -75,10 +78,16 @@ export default function InventoryView() {
     setOpenWh(false); setEditWh(null); loadAll();
   };
 
-  const confirmAndDelete = async (table, id) => {
-    const ok = window.confirm('Na pewno usunąć?');
-    if (!ok) return;
-    await window.electronAPI.dbDelete(table, id);
+  const confirmAndDelete = (table, id) => {
+    setPendingDelete({ table, id });
+    setConfirmOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!pendingDelete) return;
+    await window.electronAPI.dbDelete(pendingDelete.table, pendingDelete.id);
+    setConfirmOpen(false);
+    setPendingDelete(null);
     loadAll();
   };
 
@@ -165,6 +174,15 @@ export default function InventoryView() {
       </Grid>
 
       <WarehouseDialog open={openWh} onClose={() => { setOpenWh(false); setEditWh(null); }} onSubmit={saveWarehouse} initial={editWh} />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setPendingDelete(null); }}
+        onConfirm={executeDelete}
+        title="Usuń magazyn"
+        message="Czy na pewno chcesz usunąć ten magazyn?"
+        confirmText="Usuń"
+      />
     </Box>
   );
 }

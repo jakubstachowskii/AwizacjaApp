@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Card, CardContent, Typography, Grid, Button, IconButton, TextField, Table, TableBody, TableCell, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Snackbar, Alert } from '@mui/material';
 import { FaLayerGroup, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import ConfirmDialog from '../../../components/ConfirmDialog';
 
 const BatchDialog = ({ open, onClose, onSubmit, initial, grains }) => {
   const [v, setV] = useState({ batch_number: '', grain_id: '', origin: '', harvest_year: new Date().getFullYear(), quality_params: '{}', physical_mass: '', trade_mass: '', status: 'aktywna' });
@@ -54,6 +55,8 @@ export default function BatchesView() {
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState('');
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -75,12 +78,21 @@ export default function BatchesView() {
     setOpen(true);
   };
   const onEdit = (row) => { setEditing(row); setOpen(true); };
-  const onDelete = async (row) => {
-    if (!window.confirm('Usunąć partię?')) return;
+  const onDelete = (row) => {
+    setRowToDelete(row);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!rowToDelete) return;
     try {
-      await window.electronAPI.dbDelete('magazyn_batches', row.id);
+      await window.electronAPI.dbDelete('magazyn_batches', rowToDelete.id);
       await load();
     } catch (e) { setSnack({ open: true, message: 'Błąd usuwania', severity: 'error' }); }
+    finally {
+      setConfirmOpen(false);
+      setRowToDelete(null);
+    }
   };
 
   const submit = async (payload) => {
@@ -144,7 +156,7 @@ export default function BatchesView() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#64748b' }}>Brak partii</TableCell>
+                  <TableCell colSpan={8} align="center" sx={{ py: 1, color: '#64748b' }}>Brak partii</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -153,6 +165,15 @@ export default function BatchesView() {
       </Card>
 
       <BatchDialog open={open} onClose={() => { setOpen(false); setEditing(null); }} onSubmit={submit} initial={editing} grains={grains} />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setRowToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Usuń partię"
+        message={rowToDelete ? `Czy na pewno usunąć partię "${rowToDelete.batch_number}"?` : ''}
+        confirmText="Usuń"
+      />
 
       <Snackbar open={snack.open} autoHideDuration={2500} onClose={() => setSnack(s => ({ ...s, open: false }))}>
         <Alert severity={snack.severity} onClose={() => setSnack(s => ({ ...s, open: false }))}>{snack.message}</Alert>
