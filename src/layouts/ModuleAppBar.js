@@ -42,7 +42,7 @@ export default function ModuleAppBar({
           <Typography
             variant="h6"
             noWrap
-            sx={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.02em', lineHeight: 1.25 }}
+            sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.0625rem' }, letterSpacing: '-0.02em', lineHeight: 1.25 }}
           >
             {mod.title}
           </Typography>
@@ -50,7 +50,7 @@ export default function ModuleAppBar({
             variant="caption"
             color="text.secondary"
             noWrap
-            sx={{ display: { xs: 'none', sm: 'block' }, lineHeight: 1.3 }}
+            sx={{ display: { xs: 'none', sm: 'block' }, lineHeight: 1.3, fontSize: '0.8125rem' }}
           >
             {mod.subtitle}
           </Typography>

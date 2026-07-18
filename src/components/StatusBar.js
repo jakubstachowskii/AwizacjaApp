@@ -23,11 +23,11 @@ const StatusBar = ({ counters }) => {
   return (
     <Box component="footer" sx={statusBarBoxStyles}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' }, whiteSpace: 'nowrap' }}>
+        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.8125rem' }, whiteSpace: 'nowrap' }}>
           Awizacje
         </Typography>
-        <Chip icon={<FaCalendarDay style={{ fontSize: '0.6rem' }} />} label={formatDate(currentDate)} size="small" sx={statusChipSx} />
-        <Chip icon={<FaClock style={{ fontSize: '0.6rem' }} />} label={formatTime(currentTime)} size="small" sx={{ ...statusChipSx, display: { xs: 'none', sm: 'inline-flex' } }} />
+        <Chip icon={<FaCalendarDay style={{ fontSize: '0.75rem' }} />} label={formatDate(currentDate)} size="small" sx={statusChipSx} />
+        <Chip icon={<FaClock style={{ fontSize: '0.75rem' }} />} label={formatTime(currentTime)} size="small" sx={{ ...statusChipSx, display: { xs: 'none', sm: 'inline-flex' } }} />
       </Box>
 
       {counters && (

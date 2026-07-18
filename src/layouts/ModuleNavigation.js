@@ -97,7 +97,7 @@ export default function ModuleNavigation({
                 px: navExpanded ? 1.5 : 1,
                 minHeight: 42,
                 mb: 0.25,
-                color: active ? '#fff' : SIDEBAR_MUTED,
+                color: active ? '#fff' : SIDEBAR_TEXT,
                 bgcolor: active ? mod.accent : 'transparent',
                 boxShadow: active ? `0 2px 8px ${mod.accent}66` : 'none',
                 '&.Mui-selected': {
@@ -122,7 +122,7 @@ export default function ModuleNavigation({
                   maxWidth: navExpanded ? 200 : 0,
                   overflow: 'hidden',
                   transition: 'opacity 0.15s linear, max-width 0.2s ease',
-                  '& .MuiTypography-root': { fontWeight: active ? 600 : 500, fontSize: '0.875rem' }
+                  '& .MuiTypography-root': { fontWeight: active ? 600 : 500, fontSize: '0.875rem', lineHeight: 1.3 }
                 }}
               />
             </ListItemButton>

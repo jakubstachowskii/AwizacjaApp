@@ -22,7 +22,7 @@ const SalesStatusBar = ({ counters }) => {
   return (
     <Box component="footer" sx={statusBarBoxStyles}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' }, whiteSpace: 'nowrap' }}>
+        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.8125rem' }, whiteSpace: 'nowrap' }}>
           Sprzedaż
         </Typography>
         <Chip icon={<FaCalendarDay size={10} />} label={formatDate(currentDate)} size="small" sx={statusChipSx} />

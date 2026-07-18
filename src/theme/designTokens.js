@@ -11,19 +11,19 @@ export const DRAWER_COLLAPSED = 72;
 
 export const SIDEBAR_BG = '#1e293b';
 export const SIDEBAR_TEXT = '#e2e8f0';
-export const SIDEBAR_MUTED = '#94a3b8';
-export const SIDEBAR_HOVER = 'rgba(255,255,255,0.06)';
+export const SIDEBAR_MUTED = '#cbd5e1';
+export const SIDEBAR_HOVER = 'rgba(255,255,255,0.08)';
 
 /** Tło aplikacji — delikatny chłodny szary */
 export const APP_BACKGROUND = '#eef1f6';
-export const SURFACE_BORDER = 'rgba(15, 23, 42, 0.08)';
+export const SURFACE_BORDER = '#d0d7e2';
 
 export const SHADOW_SM = '0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.06)';
 export const SHADOW_MD = '0 4px 16px rgba(15, 23, 42, 0.08)';
 export const SHADOW_NAV = '2px 0 12px rgba(15, 23, 42, 0.04)';
 
 export const CARD_SX = {
-  borderRadius: 3,
+  borderRadius: 2,
   border: '1px solid',
   borderColor: SURFACE_BORDER,
   boxShadow: SHADOW_SM,

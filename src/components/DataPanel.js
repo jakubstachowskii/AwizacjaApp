@@ -8,7 +8,7 @@ export default function DataPanel({ children, noPadding }) {
       elevation={0}
       sx={{
         border: `1px solid ${SURFACE_BORDER}`,
-        borderRadius: 3,
+        borderRadius: 2,
         overflow: 'hidden',
         bgcolor: 'background.paper',
         width: '100%',
