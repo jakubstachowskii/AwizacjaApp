@@ -1,46 +1,58 @@
-# AwizaxjaApp – Grain Logistics
+# AwizacjaApp — Grain Logistics
 
-Aplikacja desktopowa (Electron + React + SQLite) do zarządzania punktem skupu zbóż.
+Aplikacja desktopowa do obsługi punktu skupu zbóż: od awizacji dostawy, przez przyjęcie na skupie i magazyn, po kontrolę jakości i sprzedaż. Działa lokalnie na komputerze, bez serwera; dane trzyma w bazie SQLite.
+
+![Panel kontrolny modułu Awizacje](docs/screenshots/panel-kontrolny.webp)
+
+![Ekran wyboru modułu](docs/screenshots/wybor-modulu.webp)
 
 ## Moduły
 
-| Moduł | Opis |
-|-------|------|
-| **Awizacje** | Kalendarz awizacji, kontrahenci, przewoźnicy, zboża, raporty |
+| Moduł | Co obsługuje |
+|-------|--------------|
+| **Awizacje** | Kalendarz awizacji, kontrahenci, nadawcy, słownik zbóż, raporty |
 | **Skup** | Przyjęcia, dostawy, cenniki, kontrakty, dokumenty, reguły jakości |
 | **Magazyn** | Magazyny, stany, partie, ruchy, przesunięcia, inwentaryzacja |
 | **Jakość** | Badania laboratoryjne, certyfikaty, procesy HACCP/GMP |
 | **Sprzedaż** | Klienci, zamówienia, faktury |
 
-## Wymagania
+Moduły są ze sobą połączone: zapis przyjęcia na skupie mapuje zboże ze słownika skupu na słownik magazynu i tworzy ruch magazynowy w jednej transakcji SQLite.
 
-- Node.js 16+
-- npm
+Każdy moduł ma też panel urządzeń (waga mostowa, drukarka dokumentów). Konfiguracja wagi przez port szeregowy lub TCP jest przygotowana, a w obecnej wersji odczyt wagi jest symulowany.
+
+## Technologie
+
+- Electron (proces główny, komunikacja IPC, dostęp do bazy)
+- React 18 + MUI (interfejs)
+- SQLite przez sql.js, schemat w `schema.sql`
+- jsPDF + html2canvas (eksport dokumentów do PDF)
 
 ## Uruchomienie
 
+Wymagania: Node.js 16+ i npm.
+
 ```bash
 npm install
-npm start          # build React + Electron (produkcja lokalna)
-npm run dev        # hot-reload React + Electron (development)
-start.bat          # Windows: build + electron
+npm start          # build React + uruchomienie Electron
+npm run dev        # tryb deweloperski z hot-reload
 ```
 
-## Budowanie instalatora
+Na Windows można też uruchomić `start.bat`.
+
+### Instalator
 
 ```bash
 npm run dist
 ```
 
-Pliki w folderze `dist/`.
+Gotowe pliki trafiają do folderu `dist/`.
 
-## Baza danych
+## Dane
 
-- SQLite: `%APPDATA%/grain-logistics-app/grain_logistics.db` (Windows)
-- Schemat: `schema.sql`
-- Backup / restore / export JSON: **Ustawienia** na ekranie startowym
+- Baza: `%APPDATA%/grain-logistics-app/grain_logistics.db` (Windows)
+- Kopia zapasowa, przywracanie i eksport do JSON: **Ustawienia** na ekranie startowym
 
-## Architektura
+## Struktura
 
 ```
 electron/          – proces główny, IPC, SQLite
@@ -56,6 +68,6 @@ schema.sql         – pełny schemat bazy
 npm run test:db
 ```
 
-## Integracja Skup ↔ Magazyn
+---
 
-Przy zapisie przyjęcia skupu system automatycznie mapuje zboże ze słownika `skup_grains` na `grains` (po nazwie) i tworzy ruch magazynowy w jednej transakcji SQLite.
+Więcej o projekcie: [portfolio](https://portfolio-jakubstachowskii.vercel.app/projekty/awizacja-app/)
